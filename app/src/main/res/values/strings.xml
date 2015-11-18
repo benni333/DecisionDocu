@@ -1,0 +1,42 @@
+<resources>
+    <string name="app_name">DeDoc</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="team_fragment_text">Team Fragment</string>
+    <string name="title_activity_login">Sign in</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="prompt_firstname">Firstname</string>
+    <string name="prompt_lastname">Lastname</string>
+    <string name="action_sign_in">Sign in</string>
+    <string name="action_register">Register</string>
+    <string name="action_upload_picture">Upload Profile Picture</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="action_register_short">Register</string>
+    <string name="error_invalid_email">This email address is invalid</string>
+    <string name="error_invalid_password">This password is invalid</string>
+    <string name="error_incorrect_password">This password is incorrect</string>
+    <string name="error_tooshort_password">Password needs to have 8 characters minimum</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="error_invalid_name">This name is invalid</string>
+    <string name="permission_rationale">"Contacts permissions are needed for providing email
+        completions."
+    </string>
+    <string name="new_existing_picture">Take new or use existing Picutre?</string>
+    <string name="existing_picture">Use picture from media center</string>
+    <string name="new_picture">Take new picture</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="title_activity_register_test">Sign in</string>
+    <string name="title_activity_registertest">Sign in</string>
+    <string name="title_activity_register">Register</string>
+    <string-array name="picture_option">
+        <item>Use picture from media center</item>
+        <item>Take new picture</item>
+    </string-array>
+
+</resources>
