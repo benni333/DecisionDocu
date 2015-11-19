@@ -68,12 +68,7 @@ public class LoginActivity extends AppCompatActivity {
 
     @AfterViews
     protected void init() {
-        try {
-            Client client = ClientBuilder.newClient().register(RestHelper.AndroidFriendlyFeature.class);
-            System.out.println(client.target("http://oracle.com").request().get(String.class));
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        new NeworktTask().execute();
     }
 
     @Click(R.id.email_sign_in_button)
@@ -247,6 +242,20 @@ public class LoginActivity extends AppCompatActivity {
         protected void onCancelled() {
             mAuthTask = null;
             showProgress(false);
+        }
+    }
+
+    public class NeworktTask extends AsyncTask<Void, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            try {
+                Client client = ClientBuilder.newClient().register(RestHelper.AndroidFriendlyFeature.class);
+                System.out.println(client.target("http://oracle.com").request().get(String.class));
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 
