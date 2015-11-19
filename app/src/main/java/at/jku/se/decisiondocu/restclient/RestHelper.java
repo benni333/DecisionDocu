@@ -19,11 +19,11 @@ public class RestHelper {
 
     private static boolean DEBUG_MODE = false;
 
-    //private static final String BASEURL_OFFLINE = "http://192.168.0.103:8080/DecisionDocu/api/";
-    //private static final String BASEURL_ONLINE = "http://192.168.0.103:8080/DecisionDocu/api/";
+    private static final String BASEURL_OFFLINE = "http://192.168.0.103:8080/DecisionDocu/api/";
+    private static final String BASEURL_ONLINE = "http://ubuntu.mayerb.net:8080/DecisionDocu/api/";
 
-    private static final String BASEURL_OFFLINE = "http://www.oracle.com";
-    private static final String BASEURL_ONLINE = "http://www.oracle.com";
+    //private static final String BASEURL_OFFLINE = "http://www.oracle.com";
+    //private static final String BASEURL_ONLINE = "http://www.oracle.com";
 
     private static Client client, client2;
 

@@ -1,25 +1,10 @@
 package at.jku.se.decisiondocu;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Bundle;
-import android.provider.MediaStore;
-import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
@@ -32,7 +17,8 @@ import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.EditorAction;
 import org.androidannotations.annotations.ViewById;
 
-import at.jku.se.decisiondocu.restclient.RestClient;
+import at.jku.se.decisiondocu.asynctask.RestNetworkTasks;
+import at.jku.se.decisiondocu.dialog.PhotoUploadDialog;
 
 @EActivity(R.layout.activity_register)
 public class RegisterActivity extends AppCompatActivity {
@@ -44,7 +30,6 @@ public class RegisterActivity extends AppCompatActivity {
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
      */
-    private UserRegisterTask mAuthTask = null;
 
     @ViewById(R.id.register_form)
     ScrollView mRegisterForm;
@@ -71,6 +56,8 @@ public class RegisterActivity extends AppCompatActivity {
     @ViewById(R.id.profilePicture)
     ImageView imageToUpload;
 
+    PhotoUploadDialog photoDialog;
+
     @AfterViews
     protected void init() {
 
@@ -93,7 +80,8 @@ public class RegisterActivity extends AppCompatActivity {
     @Click(R.id.upload_Profile_Picture)
     void showProfileDialog(){
         FragmentManager manager = getSupportFragmentManager();
-        new ProfilePictureUploadDialog().show(getSupportFragmentManager(), "Profile Picutre");
+        photoDialog = new PhotoUploadDialog(imageToUpload);
+        photoDialog.show(getSupportFragmentManager(), "Profile Picture");
     }
 
     /**
@@ -102,9 +90,6 @@ public class RegisterActivity extends AppCompatActivity {
      * errors are presented and no actual login attempt is made.
      */
     private void attemptRegister() {
-        if (mAuthTask != null) {
-            return;
-        }
 
         // Reset errors.
         mEmailView.setError(null);
@@ -154,9 +139,25 @@ public class RegisterActivity extends AppCompatActivity {
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            showProgress(true);
-            mAuthTask = new UserRegisterTask(firstname, lastname, email, password);
-            mAuthTask.execute((Void) null);
+            Bitmap image=null;
+            try {
+                image = ((BitmapDrawable) imageToUpload.getDrawable()).getBitmap();
+            }catch (Exception e){}
+            new RestNetworkTasks.UserRegisterTask(mProgressView,mRegisterFormView,getBaseContext(),
+                    firstname, lastname, email, password, image){
+                @Override
+                protected void onPostExecute(final Integer success) {
+                    super.onPostExecute(success);
+                    if (success==1) {
+                        finish();
+                    } else {
+                        mPasswordView.setError(getString(R.string.error_incorrect_password));
+                        mPasswordView.requestFocus();
+                    }
+                }
+            }.execute();
+            //mAuthTask = new UserRegisterTask(firstname, lastname, email, password, image);
+            //mAuthTask.execute((Void) null);
         }
     }
 
@@ -179,7 +180,7 @@ public class RegisterActivity extends AppCompatActivity {
     /**
      * Shows the progress UI and hides the login form.
      */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+    /*@TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show) {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
@@ -216,18 +217,20 @@ public class RegisterActivity extends AppCompatActivity {
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserRegisterTask extends AsyncTask<Void, Void, Boolean> {
+    /*public class UserRegisterTask extends AsyncTask<Void, Void, Boolean> {
 
         private final String mfirstname;
         private final String mlastname;
         private final String mEmail;
         private final String mPassword;
+        private final Bitmap mProfile;
 
-        UserRegisterTask(String firstname, String lastname, String email, String password) {
+        UserRegisterTask(String firstname, String lastname, String email, String password, Bitmap profil) {
             mfirstname=firstname;
             mlastname=lastname;
             mEmail = email;
             mPassword = password;
+            mProfile = profil;
         }
 
         @Override
@@ -235,7 +238,10 @@ public class RegisterActivity extends AppCompatActivity {
             // TODO: attempt authentication against a network service.
 
             try {
-                LoginActivity_.DUMMY_CREDENTIALS.add(mEmail + ":" + mPassword);
+                RestClient.USERS.add(mEmail + ":" + mPassword);
+                if(mProfile!=null) {
+                    RestClient.safeProfilePicture(mProfile);
+                }
                 Thread.sleep(2000);
                 return true;
             } catch (InterruptedException e) {
@@ -262,72 +268,30 @@ public class RegisterActivity extends AppCompatActivity {
             mAuthTask = null;
             showProgress(false);
         }
-    }
+    }*/
 
-    public class ProfilePictureUploadDialog extends DialogFragment {
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            // Use the Builder class for convenient dialog construction
-            AlertDialog.Builder builder = new AlertDialog.Builder(new ContextThemeWrapper(getActivity(),R.style.AppTheme_AlertDialogCustom));
-            builder.setTitle(R.string.new_existing_picture)
-                    .setItems(R.array.picture_option, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            if(which==0){
-                                uploadFromMediaCenter();
-                            }else{
-                                uploadWithCamera();
-                            }
-
-                        }
-                    })
-                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            // User cancelled the dialog
-                        }
-                    });
-            // Create the AlertDialog object and return it
-            return builder.create();
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(photoDialog!=null) {
+            photoDialog.onActivityResult(requestCode, resultCode, data);
         }
-    }
-
-    private void uploadFromMediaCenter() {
-        Log.i("Upload", "FromMediaCenter");
-        if(mayRequestMedia()) {
-            Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(galleryIntent, RESULT_LOAD_IMAGE);
-        }
-    }
-
-    private void uploadWithCamera(){
-        Log.i("Upload", "WithCamera");
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent, RESULT_TAKE_IMAGE);
-    }
-
-    private boolean mayRequestMedia(){
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            Log.i("RequestMedia", "first"); //Having Permission
-            return true;
-        }
-        else if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            Log.i("RequestMedia","second"); //Having Permission
-            return true;
-        }else {
-            Log.i("RequestMedia","third");//ask for Permission
-            requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_READ_EXTERNAL_STORAGE);
-        }
-        return false;
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(photoDialog!=null) {
+            photoDialog.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    /*@Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && data !=null){
             Uri selectedImage = data.getData();
             imageToUpload.setImageURI(selectedImage);
-            Bitmap image=((BitmapDrawable)imageToUpload.getDrawable()).getBitmap();
-            RestClient.safeProfilePicture(image);
         }else if(requestCode == RESULT_TAKE_IMAGE && resultCode == RESULT_OK && data !=null){
             Bundle extras = data.getExtras();
             Bitmap imageBitmap = (Bitmap) extras.get("data");
@@ -343,5 +307,5 @@ public class RegisterActivity extends AppCompatActivity {
                 uploadFromMediaCenter();
             }
         }
-    }
+    }*/
 }

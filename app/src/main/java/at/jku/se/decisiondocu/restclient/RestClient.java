@@ -4,8 +4,12 @@ import android.graphics.Bitmap;
 import android.util.Log;
 
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
+import org.glassfish.jersey.media.multipart.file.StreamDataBodyPart;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
@@ -20,22 +24,58 @@ public class RestClient {
 
     //private final static String httpURL = "http://localhost:8080/DecisionDocu/api/document/upload";
 
-    public static void safeProfilePicture(Bitmap image){
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        image.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+    public static List<String> USERS = new ArrayList<String>();
+    static{
+        if(USERS.size()==0) {
+            USERS.add("foo@example.com:hello");
+            USERS.add("bar@example.com:world");
+        }
+    }
 
-        //InputStream inputStream= new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-
-
+    public static String getToken(String email, String password){
         try {
-            System.out.println(uploadProfilePicture(byteArrayOutputStream.toByteArray()));
+            // Simulate network access.
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            return null;
+        }
+        for (String credential : USERS) {
+            String[] pieces = credential.split(":");
+            if (pieces[0].equals(email)) {
+                if(pieces[1].equals(password)){
+                    return "AllowedToken";
+                }
+            }
+        }
+        return null;
+    }
+
+    public static boolean registerUser(String firstname, String lastname, String email, String password, Bitmap profil){
+        try {
+            USERS.add(email + ":" + password);
+            if(profil!=null) {
+                RestClient.safeProfilePicture(profil, USERS.size());
+            }
+            //Thread.sleep(2000);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+    private static void safeProfilePicture(Bitmap image, int id){
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            image.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+            System.out.println(uploadProfilePicture(byteArrayOutputStream.toByteArray(),id));
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-    private static String uploadProfilePicture(byte[] fileContent)throws Exception {
+    private static String uploadProfilePicture(byte[] fileContent, int id)throws Exception {
         // local variables
         WebTarget webTarget = null;
         Invocation.Builder invocationBuilder = null;
@@ -48,13 +88,16 @@ public class RestClient {
         try{
             // invoke service after setting necessary parameters
             webTarget = RestHelper.getWebTargetWithMultiFeature();
-            webTarget= webTarget.path("document").path("upload");
+            webTarget= webTarget.path("uploadDocument").path("profilePicture");
             Log.i("URI", webTarget.getUri().getHost() + webTarget.getUri().getPath());
 
             // set file upload values
             //streamDataBodyPart = new StreamDataBodyPart("uploadFile", inputStream, "01.jpeg", MediaType.APPLICATION_OCTET_STREAM_TYPE);
             formDataMultiPart = new FormDataMultiPart();
-            formDataMultiPart.field("uploadFile", fileContent, MediaType.APPLICATION_OCTET_STREAM_TYPE);
+            StreamDataBodyPart bodyPart =new StreamDataBodyPart("uploadFile",new ByteArrayInputStream(fileContent),id+".jpg",MediaType.APPLICATION_OCTET_STREAM_TYPE);
+            //formDataMultiPart.field("uploadFile", fileContent, MediaType.APPLICATION_OCTET_STREAM_TYPE);
+
+            formDataMultiPart.bodyPart(bodyPart);
 
             response = webTarget.request().post(Entity.entity(formDataMultiPart, MediaType.MULTIPART_FORM_DATA));
 
@@ -79,12 +122,13 @@ public class RestClient {
         finally{
             // release resources, if any
             //streamDataBodyPart.cleanup();
-            //formDataMultiPart.cleanup();
-            //formDataMultiPart.close();
-            //response.close();
+            formDataMultiPart.cleanup();
+            formDataMultiPart.close();
+            response.close();
         }
         return responseString;
 
 
     }
+
 }
